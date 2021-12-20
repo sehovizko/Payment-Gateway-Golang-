@@ -8,9 +8,9 @@ import (
 	"strconv"
 
 	appamount "github.com/lelledaniele/upaygo/amount"
-	apprest "github.com/lelledaniele/upaygo/controller/rest"
 	appcustomer "github.com/lelledaniele/upaygo/customer"
-	appintent "github.com/lelledaniele/upaygo/payment/intent"
+	apperror "github.com/lelledaniele/upaygo/error"
+	appintentcreate "github.com/lelledaniele/upaygo/payment/intent/create"
 	appsource "github.com/lelledaniele/upaygo/payment/source"
 )
 
@@ -38,15 +38,15 @@ const (
 // @Param amount formData int true "Intent's amount"
 // @Param payment_source formData string true "Intent's payment source"
 // @Param customer_reference formData string false "Intent's customer reference"
-// @Success 200 {interface} paymentintent.Intent
-// @Failure 405 {object} apprest.RESTError
-// @Failure 500 {object} apprest.RESTError
+// @Success 200 {interface} apppaymentintent.Intent
+// @Failure 405 {object} apperror.RESTError
+// @Failure 500 {object} apperror.RESTError
 // @Router /payment_intents [post]
 func Handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", responseTye)
 
 	if r.Method != method {
-		e := apprest.RESTError{
+		e := apperror.RESTError{
 			M: fmt.Sprintf(errorMethod, method),
 		}
 		_ = json.NewEncoder(w).Encode(e)
@@ -54,9 +54,9 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a, ps, cus, e := getParams(r)
+	amount, ps, cus, e := getParams(r)
 	if e != nil {
-		e := apprest.RESTError{
+		e := apperror.RESTError{
 			M: e.Error(),
 		}
 		_ = json.NewEncoder(w).Encode(e)
@@ -64,9 +64,9 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pi, e := appintent.New(a, ps, cus)
+	appintent, e := appintentcreate.Create(amount, ps, cus)
 	if e != nil {
-		e := apprest.RESTError{
+		e := apperror.RESTError{
 			M: fmt.Sprintf(errorIntentCreation, e),
 		}
 		_ = json.NewEncoder(w).Encode(e)
@@ -74,9 +74,9 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	e = json.NewEncoder(w).Encode(pi)
+	e = json.NewEncoder(w).Encode(appintent)
 	if e != nil {
-		e := apprest.RESTError{
+		e := apperror.RESTError{
 			M: fmt.Sprintf(errorIntentEncoding, e),
 		}
 		_ = json.NewEncoder(w).Encode(e)
@@ -102,7 +102,7 @@ func getParams(r *http.Request) (appamount.Amount, appsource.Source, appcustomer
 		return nil, nil, nil, fmt.Errorf(errorParamAmountType, e.Error())
 	}
 
-	a, e := appamount.New(ai, p.Get("currency"))
+	amount, e := appamount.New(ai, p.Get("currency"))
 	if e != nil {
 		return nil, nil, nil, fmt.Errorf(errorAmountCreation, e.Error())
 	}
@@ -114,5 +114,5 @@ func getParams(r *http.Request) (appamount.Amount, appsource.Source, appcustomer
 
 	ps := appsource.New(p.Get("payment_source"))
 
-	return a, ps, cus, nil
+	return amount, ps, cus, nil
 }
