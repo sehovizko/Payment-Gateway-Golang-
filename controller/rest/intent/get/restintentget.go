@@ -1,4 +1,4 @@
-package apprestintentconfirm
+package apprestintentget
 
 import (
 	"encoding/json"
@@ -8,28 +8,27 @@ import (
 
 	appcurrency "github.com/lelledaniele/upaygo/currency"
 	apperror "github.com/lelledaniele/upaygo/error"
-	apppaymentintentconfirm "github.com/lelledaniele/upaygo/payment/intent/confirm"
+	apppaymentintentget "github.com/lelledaniele/upaygo/payment/intent/get"
 
 	"github.com/gorilla/mux"
 )
 
 const (
-	URL    = "/payment_intents/{id}/confirm"
-	method = http.MethodPost
+	URL    = "/payment_intents/{id}"
+	method = http.MethodGet
 
 	responseTye = "application/json"
 
-	errorMethod              = "'%v' is the only method supported"
-	errorParamPathMissing    = "missing URL in-path mandatory parameters to confirm a payment intent"
-	errorParsingParam        = "error during the payload parsing: '%v'"
-	errorParamPayloadMissing = "missing payload mandatory parameters to confirm a payment intent"
-	errorAmountCreation      = "error during the intent amount creation: '%v'"
-	errorIntentConfirmation  = "error during the intent confirmation: '%v'"
-	errorIntentEncoding      = "error during the intent encoding: '%v'"
+	errorMethod            = "'%v' is the only method supported"
+	errorParamPathMissing  = "missing URL in-path mandatory parameters to get the payment intent"
+	errorParamQueryMissing = "error during the query parsing: '%v'"
+	errorAmountCreation    = "error during the intent amount creation: '%v'"
+	errorIntentGet         = "error during the intent getter: '%v'"
+	errorIntentEncoding    = "error during the intent encoding: '%v'"
 )
 
-// @Summary Confirm an intent
-// @Description Confirm an unconfirmed intent
+// @Summary Get an intent
+// @Description Get an existing intent
 // @Tags Intent
 // @Accept x-www-form-urlencoded
 // @Produce json
@@ -39,7 +38,7 @@ const (
 // @Failure 400 {object} apperror.RESTError
 // @Failure 405 {object} apperror.RESTError
 // @Failure 500 {object} apperror.RESTError
-// @Router /payment_intents/{id}/confirm [post]
+// @Router /payment_intents/{id} [get]
 func Handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", responseTye)
 
@@ -66,12 +65,12 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	appintent, e := apppaymentintentconfirm.Confirm(ID, cur)
+	appintent, e := apppaymentintentget.Get(ID, cur)
 	if e != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 
 		e := apperror.RESTError{
-			M: fmt.Sprintf(errorIntentConfirmation, e),
+			M: fmt.Sprintf(errorIntentGet, e),
 		}
 		_ = json.NewEncoder(w).Encode(e)
 
@@ -100,17 +99,12 @@ func getParams(r *http.Request) (string, appcurrency.Currency, error) {
 		return "", nil, errors.New(errorParamPathMissing)
 	}
 
-	e := r.ParseForm()
-	if e != nil {
-		return "", nil, fmt.Errorf(errorParsingParam, e.Error())
+	cursym := r.URL.Query().Get("currency")
+	if cursym == "" {
+		return "", nil, errors.New(errorParamQueryMissing)
 	}
 
-	p := r.Form
-	if p.Get("currency") == "" {
-		return "", nil, errors.New(errorParamPayloadMissing)
-	}
-
-	cur, e := appcurrency.New(p.Get("currency"))
+	cur, e := appcurrency.New(cursym)
 	if e != nil {
 		return "", nil, fmt.Errorf(errorAmountCreation, e.Error())
 	}

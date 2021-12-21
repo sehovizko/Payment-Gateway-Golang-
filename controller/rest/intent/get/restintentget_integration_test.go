@@ -1,6 +1,6 @@
 // +build stripe
 
-package apprestintentconfirm_test
+package apprestintentget_test
 
 import (
 	"encoding/json"
@@ -10,11 +10,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 
+	apprestintentget "github.com/lelledaniele/upaygo/controller/rest/intent/get"
+
 	appconfig "github.com/lelledaniele/upaygo/config"
-	apprestintentconfirm "github.com/lelledaniele/upaygo/controller/rest/intent/confirm"
 	appcurrency "github.com/lelledaniele/upaygo/currency"
 
 	"github.com/gorilla/mux"
@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	errorRestCreateIntent = "confirm intent controller failed: %v"
+	errorRestCreateIntent = "cancel intent controller failed: %v"
 )
 
 type responseIntent struct {
@@ -70,7 +70,8 @@ func createTestIntent() (string, error) {
 		Currency:           stripe.String(cur.GetISO4217()),
 		PaymentMethod:      stripe.String("pm_card_visa"),
 		SetupFutureUsage:   stripe.String("off_session"),
-		ConfirmationMethod: stripe.String("manual"),
+		ConfirmationMethod: stripe.String("automatic"),
+		Confirm:            stripe.Bool(true),
 		CaptureMethod:      stripe.String("manual"),
 	}
 
@@ -93,11 +94,14 @@ func Test(t *testing.T) {
 	}
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "http://example.com", strings.NewReader("currency=EUR"))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
 	req = mux.SetURLVars(req, map[string]string{"id": intentID})
 
-	apprestintentconfirm.Handler(w, req)
+	q := req.URL.Query()
+	q.Add("currency", "EUR")
+	req.URL.RawQuery = q.Encode()
+
+	apprestintentget.Handler(w, req)
 
 	res := w.Result()
 	resBody, e := ioutil.ReadAll(res.Body)
@@ -114,10 +118,6 @@ func Test(t *testing.T) {
 
 	if resI.IntentGatewayReference == "" {
 		t.Errorf(errorRestCreateIntent, "the body response does not have the gateway reference")
-	}
-
-	if resI.Status.R != "requires_capture" {
-		t.Errorf(errorRestCreateIntent, "the body response does not have the status as 'requires_capture'")
 	}
 
 	_, _ = paymentintent.Cancel(intentID, nil)

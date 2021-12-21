@@ -1,4 +1,4 @@
-package apppaymentintentconfirm
+package apppaymentintentcancel
 
 import (
 	"errors"
@@ -12,10 +12,10 @@ import (
 	"github.com/stripe/stripe-go/paymentintent"
 )
 
-// Confirm gets the intent id from c Stripe account and confirm it
-func Confirm(id string, c appcurrency.Currency) (apppaymentintent.Intent, error) {
+// Cancel gets the intent id from c Stripe account and cancel it
+func Cancel(id string, c appcurrency.Currency) (apppaymentintent.Intent, error) {
 	if id == "" || c == nil {
-		return nil, errors.New("impossible to confirm the payment intent without required parameters")
+		return nil, errors.New("impossible to cancel the payment intent without required parameters")
 	}
 
 	sck, e := appconfig.GetStripeAPIConfigByCurrency(c.GetISO4217())
@@ -25,7 +25,7 @@ func Confirm(id string, c appcurrency.Currency) (apppaymentintent.Intent, error)
 
 	stripe.Key = sck.GetSK()
 
-	intent, e := paymentintent.Confirm(id, nil)
+	intent, e := paymentintent.Cancel(id, nil)
 	if e != nil {
 		m, es := apperror.GetStripeErrorMessage(e)
 		if es == nil {

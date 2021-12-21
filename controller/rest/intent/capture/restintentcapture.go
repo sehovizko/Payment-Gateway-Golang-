@@ -1,4 +1,4 @@
-package apprestintentconfirm
+package apprestintentcapture
 
 import (
 	"encoding/json"
@@ -8,28 +8,28 @@ import (
 
 	appcurrency "github.com/lelledaniele/upaygo/currency"
 	apperror "github.com/lelledaniele/upaygo/error"
-	apppaymentintentconfirm "github.com/lelledaniele/upaygo/payment/intent/confirm"
+	apppaymentintentcapture "github.com/lelledaniele/upaygo/payment/intent/capture"
 
 	"github.com/gorilla/mux"
 )
 
 const (
-	URL    = "/payment_intents/{id}/confirm"
+	URL    = "/payment_intents/{id}/capture"
 	method = http.MethodPost
 
 	responseTye = "application/json"
 
 	errorMethod              = "'%v' is the only method supported"
-	errorParamPathMissing    = "missing URL in-path mandatory parameters to confirm a payment intent"
+	errorParamPathMissing    = "missing URL in-path mandatory parameters to capture a payment intent"
 	errorParsingParam        = "error during the payload parsing: '%v'"
-	errorParamPayloadMissing = "missing payload mandatory parameters to confirm a payment intent"
+	errorParamPayloadMissing = "missing payload mandatory parameters to capture a payment intent"
 	errorAmountCreation      = "error during the intent amount creation: '%v'"
-	errorIntentConfirmation  = "error during the intent confirmation: '%v'"
+	errorIntentCapture       = "error during the intent capture: '%v'"
 	errorIntentEncoding      = "error during the intent encoding: '%v'"
 )
 
-// @Summary Confirm an intent
-// @Description Confirm an unconfirmed intent
+// @Summary Capture an intent
+// @Description Capture an confirmed intent
 // @Tags Intent
 // @Accept x-www-form-urlencoded
 // @Produce json
@@ -39,7 +39,7 @@ const (
 // @Failure 400 {object} apperror.RESTError
 // @Failure 405 {object} apperror.RESTError
 // @Failure 500 {object} apperror.RESTError
-// @Router /payment_intents/{id}/confirm [post]
+// @Router /payment_intents/{id}/capture [post]
 func Handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", responseTye)
 
@@ -66,12 +66,12 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	appintent, e := apppaymentintentconfirm.Confirm(ID, cur)
+	appintent, e := apppaymentintentcapture.Capture(ID, cur)
 	if e != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 
 		e := apperror.RESTError{
-			M: fmt.Sprintf(errorIntentConfirmation, e),
+			M: fmt.Sprintf(errorIntentCapture, e),
 		}
 		_ = json.NewEncoder(w).Encode(e)
 

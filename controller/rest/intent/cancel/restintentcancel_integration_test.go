@@ -1,6 +1,6 @@
 // +build stripe
 
-package apprestintentconfirm_test
+package apprestintentcancel_test
 
 import (
 	"encoding/json"
@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	appconfig "github.com/lelledaniele/upaygo/config"
-	apprestintentconfirm "github.com/lelledaniele/upaygo/controller/rest/intent/confirm"
+	apprestintentcancel "github.com/lelledaniele/upaygo/controller/rest/intent/cancel"
 	appcurrency "github.com/lelledaniele/upaygo/currency"
 
 	"github.com/gorilla/mux"
@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	errorRestCreateIntent = "confirm intent controller failed: %v"
+	errorRestCreateIntent = "cancel intent controller failed: %v"
 )
 
 type responseIntent struct {
@@ -70,7 +70,8 @@ func createTestIntent() (string, error) {
 		Currency:           stripe.String(cur.GetISO4217()),
 		PaymentMethod:      stripe.String("pm_card_visa"),
 		SetupFutureUsage:   stripe.String("off_session"),
-		ConfirmationMethod: stripe.String("manual"),
+		ConfirmationMethod: stripe.String("automatic"),
+		Confirm:            stripe.Bool(true),
 		CaptureMethod:      stripe.String("manual"),
 	}
 
@@ -97,7 +98,7 @@ func Test(t *testing.T) {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req = mux.SetURLVars(req, map[string]string{"id": intentID})
 
-	apprestintentconfirm.Handler(w, req)
+	apprestintentcancel.Handler(w, req)
 
 	res := w.Result()
 	resBody, e := ioutil.ReadAll(res.Body)
@@ -116,8 +117,8 @@ func Test(t *testing.T) {
 		t.Errorf(errorRestCreateIntent, "the body response does not have the gateway reference")
 	}
 
-	if resI.Status.R != "requires_capture" {
-		t.Errorf(errorRestCreateIntent, "the body response does not have the status as 'requires_capture'")
+	if resI.Status.R != "canceled" {
+		t.Errorf(errorRestCreateIntent, "the body response does not have the status 'canceled'")
 	}
 
 	_, _ = paymentintent.Cancel(intentID, nil)
