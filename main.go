@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -19,7 +20,16 @@ import (
 	_ "github.com/lelledaniele/upaygo/docs"
 )
 
-const configFile = "config.json"
+var configFile string
+
+func init() {
+	flag.StringVar(&configFile, "config", "", "Path for config file")
+	flag.Parse()
+
+	if configFile == "" {
+		log.Fatal("Flag 'config' for configuration file path is required")
+	}
+}
 
 // @title uPayment in GO
 // @version 1.0.0
@@ -28,26 +38,24 @@ const configFile = "config.json"
 func main() {
 	fc, e := os.Open(configFile)
 	if e != nil {
-		fmt.Printf("Impossible to get configuration file: %v\n", e)
-		os.Exit(1)
+		log.Fatal(fmt.Sprintf("Impossible to open configuration file: %v\n", e))
 	}
 	defer fc.Close()
 
 	e = appconfig.ImportConfig(fc)
 	if e != nil {
-		fmt.Printf("Error durring file config import: %v", e)
-		os.Exit(1)
+		log.Fatal(fmt.Sprintf("Error durring file config import: %v\n", e))
 	}
 
 	s := appconfig.GetServerConfig()
 
 	r := mux.NewRouter()
 	r.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
-	r.HandleFunc(apprestintentget.URL, apprestintentget.Handler)
-	r.HandleFunc(apprestintentcreate.URL, apprestintentcreate.Handler)
-	r.HandleFunc(apprestintentconfirm.URL, apprestintentconfirm.Handler)
-	r.HandleFunc(apprestintentcapture.URL, apprestintentcapture.Handler)
-	r.HandleFunc(apprestintentcancel.URL, apprestintentcancel.Handler)
+	r.HandleFunc(apprestintentget.URL, apprestintentget.Handler).Methods(apprestintentget.Method)
+	r.HandleFunc(apprestintentcreate.URL, apprestintentcreate.Handler).Methods(apprestintentcreate.Method)
+	r.HandleFunc(apprestintentconfirm.URL, apprestintentconfirm.Handler).Methods(apprestintentconfirm.Method)
+	r.HandleFunc(apprestintentcapture.URL, apprestintentcapture.Handler).Methods(apprestintentcapture.Method)
+	r.HandleFunc(apprestintentcancel.URL, apprestintentcancel.Handler).Methods(apprestintentcancel.Method)
 
 	log.Fatal(http.ListenAndServe(":"+s.GetPort(), r))
 }
